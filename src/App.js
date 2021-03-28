@@ -7,6 +7,10 @@ import ErrorPage from "./page/ErrorPage";
 import EstateMainPage from "./page/EstateMainPage";
 import StockMainPage from "./page/StockMainPage";
 
+import axios from "axios";
+axios.defaults.xsrfCookieName = "csrftoken";
+axios.defaults.xsrfHeaderName = "X-CSRFToken";
+
 function App() {
   return (
     <div className="App">
