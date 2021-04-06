@@ -1,11 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useMemo } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 import xlsx from "xlsx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { faFileDownload } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelopeSquare } from "@fortawesome/free-solid-svg-icons";
 
 const EstateMainPage = () => {
+  const [userInfo, setUserInfo] = useState("");
+  useEffect(() => {
+    if (localStorage.getItem("user_token")) {
+      let user_token = localStorage.getItem("user_token");
+      setUserInfo(user_token);
+    }
+  }, []);
   const columns = useMemo(
     () => [
       {
@@ -13,7 +24,7 @@ const EstateMainPage = () => {
         accessor: "repImgUrl",
         maxWidth: 70,
         minWidth: 70,
-        Cell: ({ cell: { value } }) => <img src={value} width={60} />,
+        Cell: ({ cell: { value } }) => <img src={value} width={60} alt="img" />,
       },
       {
         accessor: "hscpNm",
@@ -39,10 +50,6 @@ const EstateMainPage = () => {
         accessor: "useAprvYmd",
         Header: "사용승인일",
       },
-      // {
-      //   accessor: "repImgUrl",
-      //   Header: "대표이미지",
-      // },
       {
         accessor: "dealCnt",
         Header: "가용매매",
@@ -102,7 +109,8 @@ const EstateMainPage = () => {
       totDongCnt: 2,
       totHsehCnt: 118,
       useAprvYmd: "1987.12.11.",
-      repImgUrl: "",
+      repImgUrl:
+        "https://landthumb-phinf.pstatic.net/20170117_111/apt_realimage_1484634046669opMNR_JPEG/eedc0e711225f33cd0af0b859b5bc561.jpg",
       dealCnt: 3,
       leaseCnt: 4,
       rentCnt: 2,
@@ -115,7 +123,8 @@ const EstateMainPage = () => {
     },
   ]);
   //입력받은 지역을 django서버로 보낸후 데이터를 받아옵니다.
-  const getEstate = async () => {
+  const getEstate = async (e) => {
+    e.preventDefault();
     const estateInfosData = await axios.post("/api/crawling/estate/", {
       location: location,
     });
@@ -127,72 +136,82 @@ const EstateMainPage = () => {
   };
 
   const onDownload = () => {
-    const ws = xlsx.utils.json_to_sheet(estateInfos);
-    [
-      "아파트명",
-      "건물타입",
-      "빌딩타입",
-      "동수",
-      "세대수",
-      "사용승인일",
-      "대표이미지",
-      "가용매매",
-      "가용전세",
-      "가용월세",
-      "가용단기",
-      "총가용",
-      "최소면적",
-      "최대면적",
-      "최소매매가",
-      "최대매매가",
-      "최소전세가",
-      "최대전세가",
-    ].forEach((x, idx) => {
-      const cellAdd = xlsx.utils.encode_cell({ c: idx, r: 0 });
-      ws[cellAdd].v = x;
-    });
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, "Sheet1");
-    xlsx.writeFile(wb, "Test.xlsx");
+    if (localStorage.getItem("user_token")) {
+      const ws = xlsx.utils.json_to_sheet(estateInfos);
+      [
+        "아파트명",
+        "건물타입",
+        "빌딩타입",
+        "동수",
+        "세대수",
+        "사용승인일",
+        "대표이미지",
+        "가용매매",
+        "가용전세",
+        "가용월세",
+        "가용단기",
+        "총가용",
+        "최소면적",
+        "최대면적",
+        "최소매매가",
+        "최대매매가",
+        "최소전세가",
+        "최대전세가",
+      ].forEach((x, idx) => {
+        const cellAdd = xlsx.utils.encode_cell({ c: idx, r: 0 });
+        ws[cellAdd].v = x;
+      });
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, "Sheet1");
+      xlsx.writeFile(wb, `${location}.xlsx`);
+    } else {
+      alert("다운로드는 로그인이 필요합니다");
+      return;
+    }
+  };
+
+  const onSendMail = async () => {
+    const res = await axios.post(
+      "/api/mail/send/estate/",
+      {
+        data: estateInfos,
+        location: location,
+      },
+      { headers: { token: userInfo } }
+    );
+
+    alert(res.data.msg);
   };
 
   return (
     <EstateWrapper>
-      <h1>부동산 매물찾기</h1>
       <SearchWrapper>
-        <SearchKeyWord>
-          검색지역
+        <div className="titleText">검색지역</div>
+        <form action="/estate/" className="formBox">
           <input
             type="text"
-            placeholder="검색지역"
+            placeholder="지역명, 단지명으로 검색..."
             value={location}
             onChange={onLocationChange}
           />
-        </SearchKeyWord>
-        <SearchKeyWord>
-          이미지 설정
-          <select>
-            <option>O</option>
-            <option>X</option>
-          </select>
-        </SearchKeyWord>
-        <SearchOption>
-          <button onClick={getEstate} className="searchButton">
-            매물검색
+          <button type="submit" onClick={getEstate} className="searchIconBtn">
+            <FontAwesomeIcon className="searchIcon" icon={faSearch} size="2x" />
           </button>
-          {true ? (
-            <button className="searchButton" onClick={onDownload}>
-              엑셀다운로드
-            </button>
-          ) : (
-            <button>엑셀다운로드</button>
-          )}
-          {true ? (
-            <button className="searchButton">이메일 전송</button>
-          ) : (
-            <button>이메일 전송</button>
-          )}
-        </SearchOption>
+        </form>
+        <div className="iconBox">
+          <FontAwesomeIcon
+            icon={faFileDownload}
+            size="2x"
+            className="downloadIcon"
+            onClick={onDownload}
+          />
+          <FontAwesomeIcon
+            icon={faEnvelopeSquare}
+            size="2x"
+            className="downloadIcon"
+            onClick={onSendMail}
+          />
+        </div>
       </SearchWrapper>
 
       <EstateDataWrapper>
@@ -209,38 +228,55 @@ const EstateMainPage = () => {
 export default EstateMainPage;
 const EstateWrapper = styled.div`
   min-height: 1000px;
-  /* height: 100%;
-  overflow-y: scroll; */
 `;
 
 const SearchWrapper = styled.div`
   padding: 0px 10px 0px 10px;
-  border: 1px solid black;
   display: flex;
   flex-direction: row;
-`;
+  align-items: center;
+  margin-top: 40px;
+  padding-bottom: 60px;
 
-const SearchKeyWord = styled.div`
-  border: 1px solid black;
-  display: flex;
-  flex-direction: column;
-  background-color: black;
-  color: white;
-`;
-
-//매물검색 버튼, 버튼 눌렀을때 => 엑셀다운로드, 이메일 전송 버튼
-const SearchOption = styled.div`
-  .searchButton {
-    all: unset;
-    height: 100%;
-    margin-left: 10px;
-    background-color: black;
-    color: white;
+  .titleText {
+    margin-right: 10px;
     font-weight: bold;
-    &:hover {
-      cursor: pointer;
-      background-color: gray;
+  }
+
+  .formBox {
+    display: flex;
+    width: 250px;
+    margin-right: 10px;
+    input {
+      width: 100%;
+      font-size: 17px;
+      border: 1px solid orange;
+      border-radius: 8px 0px 0px 8px;
+    }
+    .searchIconBtn {
+      all: unset;
+      background-color: orange;
       color: white;
+      padding: 3px;
+      border-radius: 0px 8px 8px 0px;
+      &:hover {
+        cursor: pointer;
+        background-color: darkorange;
+      }
+    }
+  }
+  .iconBox {
+    height: 39px;
+
+    .downloadIcon {
+      color: orange;
+      background-color: white;
+      height: 100%;
+      margin-left: 10px;
+      &:hover {
+        color: darkorange;
+        cursor: pointer;
+      }
     }
   }
 `;
