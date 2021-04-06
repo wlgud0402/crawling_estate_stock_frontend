@@ -61,7 +61,9 @@ const BoardWritePage = ({ location }) => {
           <div className="subInfo">
             <div className="subInfoBox"></div>
             <div className="writeBtnBox">
-              <button onClick={onWrite}>등록</button>
+              <button onClick={onWrite} className="submitbtn">
+                등록
+              </button>
             </div>
           </div>
         </ExtraInfo>
@@ -121,6 +123,18 @@ const ExtraInfo = styled.div`
       display: flex;
       align-items: center;
       margin-right: 20px;
+      .submitbtn {
+        opacity: 0.6;
+        background-color: blue;
+        padding: 10px;
+        color: white;
+        font-size: 17px;
+        font-weight: bold;
+        border-radius: 4px;
+        &:hover {
+          cursor: pointer;
+        }
+      }
     }
     .subInfoBox {
       display: flex;

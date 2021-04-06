@@ -200,6 +200,7 @@ const CommentWrapper = styled.div`
         }
       }
     }
+
     .commentInput {
       width: 100%;
       height: 100px;
